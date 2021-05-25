@@ -1,0 +1,42 @@
+Notes: Running terraform with Jenkins
+
+When running Terraform it is always recommended to not use local state except for the simplest 
+of projects. This is especially true when running Terraform in Jenkins. This is because the 
+Jenkins workspace directory can be wiped clean for each run which means if the job fails to commit
+ the new state file back to your central GitHub repository, you will get state drift, loss of
+resource tracking and possibly other unwanted side effects.
+
+It is therefore recommended that remote state is used when running Terraform on Jenkins. Any of
+ the following backends are sufficient. If storing state in S3 make sure the bucket is private 
+ and that Jenkins has the appropriate AWS API keys to read and write from the bucket. If your bucket
+ lives in a different AWS account, the credentials for that account can be specified separately
+ than main credentials used to manage infrastructure.
+ 
+Remote backends supported:
+artifactory
+azurerm
+consul
+etcd
+etcdv3
+gcs
+http
+manta
+s3
+swift
+terraform enterprise
+
+
+Managing Configurations for Different Environments
+During the life of your Terraform project you will undoubtedly have to deploy it to multiple 
+environments. When doing this I would recommend using one Terraform project but for each environment
+ use a separate Terraform variables file and a separate Terraform workspace.
+Your project will then look something like this:
+
+main.tf
+dev.tfvars
+qa.tfvars
+uat.tfvars
+prod.tfvars
+Each environment variable file will then be run with the corresponding Terraform workspace to track 
+Terraform State separately for each environment.
+
