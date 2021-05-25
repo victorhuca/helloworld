@@ -1,0 +1,209 @@
+3.	Configuration and setup of the software
+This chapter explains step by step on how to set up the  development environment
+3.1	Clone application code from Github
+Under C:\, create a folder MyApps and go to the directory C:\MyApps. You can name the folder with what you want. MyApps is just an example here:
+
+Under the directory C:\MyApps, run the command to clone the application code from the github:
+git clone https://alm-github.systems.uk.hsbc/Digital-Infra-Service/CRtool.git
+
+The Folder CRtool was cloned from github to the directory C:\MyApps (or the name you used) of your laptop. And you can see the project crmanagement under the directory C:\MyApps\CRtool:
+
+3.2	Setup of Maven
+Maven was installed in my laptop at C:\SWDTOOLS\apache-maven-3.6.1. So the version of Maven installed in my laptop was 3.6.1. You may have later version than this. Please adjust accordingly.
+
+To make Maven work correctly, some conigurations are required.
+Under C:\Users\YourEmployeeID, please try to find if .m2 is under it. If not, please create a .m2 folder under it. For me, the directory is: C:\Users\44060454\.m2
+
+Under .m2, two xml files need to be created:
+settings.xml and settings-security.xml
+
+These two files are avaible in the folder “crmanagement suppements” you have cloned from the github. You can copy them to your .m2 folder in your laptop. The values in the files need to be adjusted according to the following.
+
+3.2.1	setup of settings-security.xml
+
+This is what’s in settings-security.xml:
+<settingsSecurity>
+	<master>{0+2HykcB9g8HyF0xtWh6vRSMcKOyuplX3WzJdGOG0NM=}</master>
+</settingsSecurity>
+
+This is to provide the master password maven uses to do the encryption.
+The password needs to be encrypted using mvn -emp yourMasterPassword
+
+Copy the encrypted password to replace what’s between <master></master> in settings-security.xml
+
+3.2.2	setup of settings.xml
+
+After the master password is set up in settings-security.xml. You’ll need to encrypt the password you are going to use to access nexus server using mvn -ep yourWindowspassword:
+
+The password should be your Windows password.
+Use the encrypted password to replace all password in settings.xml and save the file. 
+
+Also replace all 44060454 with your employee id in the xml file
+3.3	Import the crmanagement project into Spring Tool Suite
+
+Start the Spring Tool Suite software. From menu, click “File”, then click “Import”, select “General  Existing Projects into Workspace”:
+ 
+3.4	Set up SSL Certificate to connect to Nexus 
+1.	In the menu of Spring Tool Suite, click “Window Preferences”, select “Jave Installed JREs” to check the location of installed JRE used by the Spring tool Suite:
+2.	then on windows command line, go to the java security under that jre path. 
+For me cd C:\swdtools\ jdk1.8.0_221-X64\jre\lib\security. Please go to the correct directory according to your environment.
+
+3.	import the hsbc signers from my email into the cacerts and type "yes" when being asked to trust:
+C:\swdtools\jdk1.8.0_221-X64\jre\lib\security>keytool -importcert -file <path to the saved cert files>\banks_ROOT.cer -alias hsbc_rootSHA2 -keystore cacerts
+C:\swdtools\jdk1.8.0_221-X64\jre\lib\security>keytool -importcert -file <path to the saved cert files>\banks_INT.cer -alias hsbc_intSHA2 -keystore cacerts
+
+password: changeit
+
+banks_INT.cer and banks_ROOT.cer can be found in the “C:\MyApps\CRtool\crmanagement supplements” directory  that has been created when cloning the github.
+
+3.5	Set up Maven in Spring Tool Suite
+In the menu of Spring Tool Suite, click “Window Preferences”, and then select “MavenInstallations”. Click “Add” to add apache-maven-3.6.1 as the Maven installation:
+
+3.6	Set up Maven Build in Spring Tool Suite
+In the menu, click “Run  Run Configurations”. And right click “Maven Build”, and select “New Configuration” from the context menu, and change the name to be “crmanagement Maven Build” or something else you like, and make the Goals to be “clean install”. 
+Click “Apply” and “Close”
+
+3.7	Test the setup of Maven in Spring Tool Suite
+Right click the project crmanagement. Select “Run As”, and then select “Maven Build”. If all the setup is correct, you should see “BUILD SUCCESS” at the end of the build in the console:
+
+ 
+3.8	Set up build path for the project crmanagement in Spring Tool Suite
+Right click the project, from the context menu, select “Build Path” and then select “Configure Build Path”.
+
+In “Libraries”, remove all the external libraries from the list. Only the following are left in Libraries:
+
+3.9	Update Project in Spring Tool Suite
+Right click the project “crmanagement”, and from the context, select “Properties”:
+
+Uncheck “Resolve dependencies from Workspace projects”
+
+Click “Apply and Close” 
+
+In Project Explorer, right click the project crmanagement. From the context menu, select “Maven” and then select “Update Project”:
+
+Check “Force Update of Snapsshots/Release”, and leave others unchanged.
+
+Click “OK”
+
+After the update is completed, go to configure Build Path of the project crmanagement, you should see the list of all the jars under “Maven Dependencies” of “Libraries”:
+
+ 3.10	Set up Tomcat Server 9 in your laptop
+The file tomcat9.0.7.zip is under the “crmanagement supplements” folder that has been created when cloning the github. 
+Unzip tomcat9.0.7.zip to the location where you want to put the code. In my example, I directly unzip it to C:\, and after that, The folder C:\tomcat9.0.7 
+
+Set up JAVA_HOME and JRE_HOME environment variables in Windows for starting tomcat
+
+3.11	Add Tomcat 9 to the server runtime environments in Spring Tool Suite
+In Spring Tool Suite, click “Window  Preferences” ,  and then go to “Server  Runtime Environments”. 
+Click “Add” button:
+
+Select “Apache Tomcat v9.0” as the type of new server runtime environment, and click “Next”.
+
+Make the new created C:\tomcat9.0.7 as the Tomcat installation directory, and click “Finish”. And Tomcat 9 is added the runtime environments.
+ 
+Click “Apply and Close”
+3.12	Create new Server instance for crmanagement proect in Spring Tool Suite
+In the Project Explorer of Spring Tool Suite, right click “Servers”, select “New  Other”:
+
+Select “Tomcat v9.0 Server” to be the server type, and “Appche Tomcat v9.0” as the the Server runtime environment. Click “Next”
+
+Click “crmanagement” and click “Add” button
+
+Click “Finish” to complete
+After this, under Servers in Project Explorer, you should see Tomcat v9.0 Server:
+
+3.13	Set up properties file and selenium web drivers
+Before running the crmanagement project, the properties file and selenium web drivers need to be set up first.
+
+Extract the seleniumGrid.zip in the “crmanagement supplements” folder to C:\Temp\seleniumGrid:
+The properties file crmanagement.properties is used by the application. In Windows, it has to be under C:\temp\seleniumGrid. And in Linux, it needs to be under /opt/seleniumGrid. That’s why seleniumGrid.zip has be unzipped at C:\Tem\seleniumGrid previously.
+The following are the properties in the crmanagement.properties file:
+NodeURL = http://localhost:4450/wd/hub
+SDM_URL=https://gsdprodlogin.us.hsbc/CAisd/pdmweb.exe
+VirtualWindow=No
+Debug=No
+ExcelFileRootPath=C:/Temp/seleniumGrid/excel/
+TemplateFilePath=c:/Temp/seleniumGrid/template.xlsx
+ServerTimezone=-8
+
+NodeURL is URL for the code to create a selenium grid node
+SDM_URL is the URL of Service Desk Manager
+If the property VirtualWindow is set to No, you will see the Chrome sessions to be created and see the application behavious in the browser. This will help you to do debug when you have issues. If VirtualWindow is set to Yes, the Chrome sessions will be created in the Virtual Windows, and you won’t see these sessions created.
+Debug property is not used any more.
+ExcelFileRootPath is the directory used for storing excel files or pictures that are generated by the code
+TemplateFilePath is used by the code to get the tempate xml for the users to download.
+
+ServerTimezone is the hour difference between the place the server located and GMT. For Hongkong, the value is -8. For PDT in the summer, the value is 7. When you access the Service Desk Manager, it’s smart enough to understand what timezone you are in when you connect to it from your machine. All the date time returned from SDM is relative to the time zone of the machine which the browser sessions are initiated from. Because in our production, the Windows server we use to initiate the Chrome instances to connect to SDM is located in Hongkong, so the dates and time returned from SDM are relative to the Hongkong Time. 
+
+
+
+The template.xlsx under C:\Temp\seleniumGrid will be used when the users try to download the template from the application.
+
+3.14	Set up selenium Grid hub and node
+The jar file selenium-server-standalone-3.141.59.jar under C:\Temp\seleniumGrid is used to create the selenium grid hub and node. 
+
+A selenium grid hub needs to be created before a selenium grid node is generated. 
+
+To create a selenium grid hub, start a Windows command prompt, go to C:\Temp\seleniumGrid, and run the command:
+java -jar selenium-server-standalone-3.141.59.jar -role hub -port 4450
+
+4450 is the port that the node uses to communicate with the hub. You can use a different port. However, if you use a different port, the property NodeURL in C:\Temp\seleniumGrid\crmanagement.properties needs to be updated accordingly. You’ll also need to update the port in the command for creating the selenium grid node.
+
+The current port in the properties file is 4450. 
+
+A different version’s selenium Chrome driver needs to be used for the different version’s Chrome Browser when you try to set up a selenium Grid node. So before setting up selenium grid node, you need to check the version of the Chrome browser in your laptop. 
+
+The Chrome browser version is 80 in my laptop, so chromedriver-80.exe is used as the chrome web driver when creating the selenium grid node in my laptop. To create a selenium grid node, you need to open another Windows command prompt, go to C:\Temp\seleniumGrid, and run the command:
+java -Dwebdriver.chrome.driver=chromedriver-80.exe -jar selenium-server-standalone-3.141.59.jar -role node -hub https://localhost:4450/grid/register -browser browserName=chrome,maxInstances=4,platform=WINDOWS
+
+You need to change chromedriver-80.exe to chromedriver-8x.exe or chromedriver-9x.exe according to the version of the Chrome browser in your laptop
+
+You can see the message “The node is registered to the hub and ready to use” if it goes well.
+
+3.15	Set up deployment of libraries
+
+Right click “crmanagement” project and select Properties from the context menu
+ 
+Select “Deployment Assembly” at the left side:
+Click “Add” at the right side
+Click “Java Build Path Entries” and click “Next”
+
+Click “Maven Dependencies” and click “Finish”
+
+Click “Apply and Close”
+3.16	Change Tomcat startup timeout in Spring Tool Suite
+Go to  “Window  Show View” and select “Servers” to show the Servers view.
+
+Double-click “Tomcat v9.0 Server at localhost” to bring up the server configuration. Change the start timeout to 120 to avoid the timeout error when you try to start the Tomcat server
+
+3.17	Run the crmanagement application from Spring Tool Suite
+Right click “crmanagement”, and select “Run As  Run on Server”:
+
+Select “Tomcat v9.0 Server at localhost” and click “Finish” to start the Tomcat server
+
+Once the server is started. You can see a browse instance is started in IDE, and the first page of the application shows up:
+
+3.18	Testing the application
+Start a Chrome session in your laptop, and enter the URL to test the application:
+http://localhost:8080/crmanagement
+
+Please check the document “Web CR ticket management Tool User Guide” about how to use the application. 
+
+Originally the property VirtualWindow is equal to “No”, which means that you can see the Chrome sessions to be created by the application for completing the tasks. If the Chrome sessions are not created, you need to check Windows command prompts to see if you find any error messages. Also check the console for more information.
+
+The file cr1.xlsx in the crmanagement supplements folder can be used to create a new CR ticket. You can refer to the document “Web CR ticket management Tool User Guide” on how to modify it to make it fit into your requirements.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
