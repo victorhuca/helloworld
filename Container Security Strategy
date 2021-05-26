@@ -1,0 +1,247 @@
+Container Security Strategy
+
+Context
+HSBC’s strategic vision for Public Cloud is for all HSBC applications and services to adopt a cloud native architecture. In most cases, this requires applications and services to be completely rewritten (transformed) through deploying immutable, short-lived assets with a well-defined job, which only contain components and libraries needed to do that job.
+
+Unlike traditional application architectures, which often divide an application into a number of tiers (e.g., web, app, and database) and have a server or VM for each tier, container architectures often have an application divided into many components, each with a single well-defined function and typically running in its own container(s). In turn, sets of containers that work together to compose an application are referred to as microservices. With this approach, application development and deployment can be more flexible and scalable.
+
+Consistent with our cloud security strategy, to fully benefit from a container and microservice architecture, it is essential to ensure that containers are adequately secured throughout their lifecycle. This includes everything from the applications they hold to the infrastructure they rely on. Container security must be integrated and continuous covering how images are created, tested, accredited, stored and retrieved as well as how containers are deployed and managed.
+
+This document explains the security risks associated with application container technologies and makes practical recommendations for addressing those risks when planning for, implementing, and maintaining containers. For the purposes of this document we will focus on Docker for container based runtime, Kubernetes for the container orchestration in accordance with HSBC’s container strategy. We assume the reader is familiar with HSBC's Cloud Strategy, Container Strategy and Cloud Security Strategy.
+
+Questions this paper addresses?
+
+What are the core components of container workloads and their security risks?
+What countermeasures must be implemented to address the risks?
+What are our next steps?
+
+What are containers?
+A container is a way of packaging a given application’s code and dependencies so that the application will run easily in any computing environment. This solves the common problem of portability -- or, more precisely, the lack thereof.
+
+Containers offer a logical packaging mechanism in which applications can be abstracted from the environment in which they actually run. This decoupling allows container-based applications to be deployed easily and consistently, regardless of whether the target environment is a private data centre or a public cloud. Containerisation provides a clean separation for developers, who can focus on their application logic and dependencies.
+
+Containers solve the portability problem by isolating the application and its dependencies so they can be moved seamlessly between machines. A process running in a container lives isolated from the underlying environment. We control what it can see and what resources it can access. This helps us use resources more efficiently and not worry about the underlying infrastructure. But while a container can be considered a boundary, it’s a boundary with limitations. Just like VMs, containers can still be compromised through various attacks, or left vulnerable through misconfigurations or unpatched components, which can lead to unauthorized access to our workloads and compute resources and even the potential to application compromise and data leakage.
+
+What are the core components of container workloads and their security risks?
+Core components of container workloads are - images, registries, orchestrators, host operating systems and containers. There are three types of security risks affecting these core components.
+
+Supply Chain Security Risks
+
+Engineers write code and build container images (static archive files that include all the application packages and libraries used to run a given container) and send them to container build pipelines to produce the images. Container images built by developers or imported from trusted third parties are stored in a version controlled system i.e. registries, that holds metadata about image owners along with cryptographic hash for each image version.
+
+This software supply chain is prone to certain security risks mentioned below:
+
+Image Risks:
+
+Image vulnerabilities
+Image configuration defects
+Embedded malware
+Embedded clear text secrets
+Use of untrusted images
+Registry Risks:
+
+Insecure connections to registries
+Stale images in registries
+Insufficient authentication and authorization restrictions
+Infrastructure Security Risks
+
+A container is a runnable instance of an image. Containers are deployed on infrastructure either on-prem or managed container platforms offered by public cloud platforms (e.g. Google Kubernetes Engine (GKE), AWS Elastic Kubernetes Service( EKS)).
+
+Container orchestrator (e.g. Kubernetes) instructs the container engine (e.g. docker daemon) to pull the images and run containers on the hosts, and orchestrates them.
+
+There are some security risks pertaining to Kubernetes and Host operating systems.
+
+Orchestrator Risks:
+
+Unbounded administrative access
+Unauthorized access
+Poorly separated inter-container network traffic
+Mixing of workload sensitivity levels
+Orchestrator node trust
+Kubernetes attack surface
+Host OS Risks:
+
+Large attack surface
+Shared kernel
+Host OS component vulnerabilities
+Improper user access rights
+Host OS file system tampering
+Runtime Security Risks
+
+Deployed containers run to serve the applications developed. A container runtime (e.g. Docker) is used to run containers on the hosts. Running containers have certain security risks as mentioned below:
+
+Container Risks:
+
+Vulnerabilities within the runtime software
+Unbounded network access from containers
+Insecure container runtime configurations
+App vulnerabilities
+Rogue containers
+Privileged containers
+Secrets in plain text
+For more details on the above risks, please check the NIST Special Publication here.
+
+
+What countermeasures must be implemented to address the risks?
+As we create more containerized workloads, we must apply some countermeasures to address the security risks identified for the core components. Security needs to part of an end-to-end process that is well understood and the strategy below is to act as guardrails in this process. We must have an operating model and roles and responsibilities need to be defined in order to provide a consistent approach for all container workloads.
+
+Software supply chain security
+Objective: Ensure software supply chain is secured, verify code provenance and image provenance and control what is being deployed in our environment. These capabilities must be built into our CI/CD pipeline [Appendix 1], container registries, and as an admission check before we deploy containers into production. This is to make sure our container images are vulnerability free and that the images we build aren't modified before they're deployed.
+
+How we will implement this objective: Our approach to software supply chain security will be guided by the following:
+
+Secure and managed base images: Use controlled base images with minimal footprint e.g. Alpine or distroless. Keep our images up to date and pull from approved private registries only.
+Secure code: Application container images developed only with application code and 3rd party or open source packages that are approved by bank standard process for security scanning.
+Security scanning: Regularly scan our images and application packages and libraries for known security vulnerabilities and misconfigurations. Detect for any embedded malware in the filesystem and scan for embedded secrets and remove/connect to enterprise secrets management solution.
+Deployment policies: Use deploy-time security policies like admission controllers to limit what we deploy into our environment based on approved images. Images must meet requirements defined by security policies in the form of signatures, before being deployed.
+Regular builds: Containers can be rebuilt and redeployed regularly, so we can benefit from the latest patches that are gradually rolled out to our environment.
+Secure private registries: Container registries would be private and not exposed to internet, 3rd party images wouldn't be imported directly and RBAC controls enforced on all registries. Regular security scanning would be performed on all images stored.
+Follow approved Containerized App Development practices by Cloud Design Authority.
+What work remains to be done: Build out a container image security scanning operating model [Appendix 2] that is cohesive and provides consistent approach for all container platforms. Perform gap analysis on how we can achieve this objective by existing tools for containers deployed in cloud platforms and on-prem and implement any in-house or 3rd party provided security solutions for a consistent approach.
+
+Infrastructure security
+Objective: Ensure that our developers have the tools they need to securely deploy containerized services on the infrastructure. Apply necessary controls to address Kubernetes and Host operating systems risks.
+
+Infrastructure security means that securing the entire stack for container workloads. Kubernetes includes security features to protect our identities, secrets, and network, and CSP provided managed Kubernetes platform (e.g. Google Kubernetes Engine) uses native CSP security features —like Cloud IAM, Cloud Audit Logging, and Virtual Private Clouds.
+
+There exists various ways that an attacker could attempt to compromise Kubernetes cluster and the applications running on it [Appendix 3]. In Kubernetes, a container runs in a pod, which in turn runs on a node, a virtual or physical machine. The nodes running pods are called worker nodes, which contain the container runtime, have their own operating system, and are managed by the Kubernetes control plane. Finally, etcd is a key-value store that keeps the state of the control plane. All of these pieces together make up a cluster.
+
+How we will implement this objective: Our approach to infrastructure security will be guided by the following.
+
+Identity and authorization:  Use Cloud IAM to manage access to our cloud projects and role-based access control (RBAC) to manage access to our k8s clusters and namespaces.
+Audit logging: In Kubernetes, API audit logs must be captured. On Managed Kubernetes services, capture Audit Logs records for both k8s clusters and the managed service (e.g. Google GKE, AWS EKS) API.
+Minimal host OS: Containers are meant to run on a much smaller host OS than for a VM, as more is packaged into the application directly. Use a OS purpose-built and optimized for running containers by default (e.g. Google Container-Optimized OS). This minimal host OS reduces the potential attack surface for our workloads.
+Networking: Create a network policy to manage pod-to-pod communications in the cluster. Use private clusters for private IPs and control outbound internet access from nodes and pods.
+Service Meshes: Could implement ~service mesh (e.g. Istio , Linkerd) to abstract network infrastructure and enforce service to service mutual TLS (mTLS) authentication and authorisation and encryption of communication between services, adopting Zero Trust security principles.
+Protect Secrets: By default, Kubernetes secrets are stored in plain text. Encrypts these secrets on disk and monitor this data for insider access. To further strengthen, apply envelop encryption with Cloud KMS or leverage approved secrets management solutions.
+Following best practices for security hardening the cluster as mentioned in [Appendix 4].
+
+
+What work remains to be done: Validate the security compliance of the images, containers deployed and the kubernetes orchestrator configuration. Identify violations and remediate accordingly. Perform gap analysis on how we can gauge infrastructure security compliance for k8s workloads deployed in cloud platforms and on-prem and deploy any in-house or 3rd party provided security solutions for a consistent approach.
+Runtime security
+Objective: Ensure our running container workloads are secure and container runtime (i.e Docker) is properly configured. Ensure that our security response team can detect and respond to security threats by providing visibility into our running containers.
+
+How we will implement this objective: Our approach to runtime security will be guided by the following.
+
+Enforce security policies: Security policies helps us apply controls on what containers can be deployed and how other containers and resources it can talk to. Leverage admission controllers, a piece of code that intercepts requests to container orchestrator prior to deploying container workloads. E.g. PodSecurityPolicy, a feature of open source Kubernetes that helps us create guardrails for our containers by setting constraints on how our pods can run— enforcing Linux security constraints like AppArmor and seccomp.
+Isolation: Prevent one untrusted container from affecting another one. Isolate workloads based on threat context and leverage sandbox solutions which uses a user space kernel to intercept and handle syscalls, adding defense-in-depth to our containers without changing how developers interact with the applications [Appendix 5].
+Patch management and immutability: Leverage the immutability property of the containers for patching, by deploying a new image in order to make changes. Rebuild the images regularly, so the patches are picked up the next time a workload is deployed.
+Discover unmanaged containers running production workloads, and harden the container runtime, gain visibility for security logging and monitoring.
+Anomalous activity detection: Integrate security logs from all layers and create security monitoring usecases to detect anomalous activities in the container stack. Leverage security solutions available in market to monitor for attacks and configure SOC playbooks as per industry standard MITRE ATT&CK matrix for appropriate action [Appendix 6].
+What work remains to be done: Build out a runtime security scanning operating model [Appendix 7] that is cohesive and provides consistent approach for all container platforms. Perform gap analysis on how we can achieve this objective by existing tools for containers and k8s workloads deployed in cloud platforms and on-prem and implement any in-house or 3rd party provided security solutions for a consistent approach.
+
+What are our next steps?
+Publish a FIM secondary security standard for container security, providing security requirements that GB/GFs must follow.
+Agree an operating model for Container security scanning and runtime protection.
+Implement a container image security scanning pipeline for GB/GFs to consume and integrate with their regular build pipelines.
+Implement security posture management solution to continuously gauge our k8s infrastructure security compliance.
+Implement container runtime security solution to gain visibility into running workloads and detect and contain threats.
+
+Training and Uplift: Train our security testing and SOC teams to do penetration testing and digital forensics and incident response in a container native fashion and understand Kubernetes contexts.
+
+How we will implement this objective: Our approach to infrastructure security will be guided by the following.
+
+Identity and authorization:  Use Cloud IAM to manage access to our cloud projects and role-based access control (RBAC) to manage access to our k8s clusters and namespaces.
+Audit logging: In Kubernetes, API audit logs must be captured. On Managed Kubernetes services, capture Audit Logs records for both k8s clusters and the managed service (e.g. Google GKE, AWS EKS) API.
+Minimal host OS: Containers are meant to run on a much smaller host OS than for a VM, as more is packaged into the application directly. Use a OS purpose-built and optimized for running containers by default (e.g. Google Container-Optimized OS). This minimal host OS reduces the potential attack surface for our workloads.
+Networking: Create a network policy to manage pod-to-pod communications in the cluster. Use private clusters for private IPs and control outbound internet access from nodes and pods.
+Service Meshes: Could implement ~service mesh (e.g. Istio , Linkerd) to abstract network infrastructure and enforce service to service mutual TLS (mTLS) authentication and authorisation and encryption of communication between services, adopting Zero Trust security principles.
+Protect Secrets: By default, Kubernetes secrets are stored in plain text. Encrypts these secrets on disk and monitor this data for insider access. To further strengthen, apply envelop encryption with Cloud KMS or leverage approved secrets management solutions.
+Following best practices for security hardening the cluster as mentioned in [Appendix 4].
+
+
+What work remains to be done: Validate the security compliance of the images, containers deployed and the kubernetes orchestrator configuration. Identify violations and remediate accordingly. Perform gap analysis on how we can gauge infrastructure security compliance for k8s workloads deployed in cloud platforms and on-prem and deploy any in-house or 3rd party provided security solutions for a consistent approach.
+Runtime security
+Objective: Ensure our running container workloads are secure and container runtime (i.e Docker) is properly configured. Ensure that our security response team can detect and respond to security threats by providing visibility into our running containers.
+
+How we will implement this objective: Our approach to runtime security will be guided by the following.
+
+Enforce security policies: Security policies helps us apply controls on what containers can be deployed and how other containers and resources it can talk to. Leverage admission controllers, a piece of code that intercepts requests to container orchestrator prior to deploying container workloads. E.g. PodSecurityPolicy, a feature of open source Kubernetes that helps us create guardrails for our containers by setting constraints on how our pods can run— enforcing Linux security constraints like AppArmor and seccomp.
+Isolation: Prevent one untrusted container from affecting another one. Isolate workloads based on threat context and leverage sandbox solutions which uses a user space kernel to intercept and handle syscalls, adding defense-in-depth to our containers without changing how developers interact with the applications [Appendix 5].
+Patch management and immutability: Leverage the immutability property of the containers for patching, by deploying a new image in order to make changes. Rebuild the images regularly, so the patches are picked up the next time a workload is deployed.
+Discover unmanaged containers running production workloads, and harden the container runtime, gain visibility for security logging and monitoring.
+Anomalous activity detection: Integrate security logs from all layers and create security monitoring usecases to detect anomalous activities in the container stack. Leverage security solutions available in market to monitor for attacks and configure SOC playbooks as per industry standard MITRE ATT&CK matrix for appropriate action [Appendix 6].
+What work remains to be done: Build out a runtime security scanning operating model [Appendix 7] that is cohesive and provides consistent approach for all container platforms. Perform gap analysis on how we can achieve this objective by existing tools for containers and k8s workloads deployed in cloud platforms and on-prem and implement any in-house or 3rd party provided security solutions for a consistent approach.
+
+What are our next steps?
+Publish a FIM secondary security standard for container security, providing security requirements that GB/GFs must follow.
+Agree an operating model for Container security scanning and runtime protection.
+Implement a container image security scanning pipeline for GB/GFs to consume and integrate with their regular build pipelines.
+Implement security posture management solution to continuously gauge our k8s infrastructure security compliance.
+Implement container runtime security solution to gain visibility into running workloads and detect and contain threats.
+
+Training and Uplift: Train our security testing and SOC teams to do penetration testing and digital forensics and incident response in a container native fashion and understand Kubernetes contexts.
+
+Appendix
+Appendix 1- Software supply chain pipeline from build trigger to running code in production
+
+Appendix 2 - Image security scanning operating model (proposed)
+
+Appendix 3  - Kubernetes attack vectors
+There are multiple components to containerised workloads that should be protected, from an attacker's point of view, each one comes with a different reward if compromised.
+
+Let’s start with the container itself. A common reason for attacking containers today is to abuse compute resources, for example, for cryptocurrency mining.
+
+Attackers could also try to escape the container in order to get at the node. Compromised Kubernetes nodes give malicious actors numerous attack opportunities, including a chance to propagate to other nodes in the cluster and also gain persistent access to valuable user code, compute and/or data. “Container escape” is a type of privilege escalation attack that uses the fact that containers share a host kernel. If a malicious actor compromises a container and receives privileged access, they could potentially access information running in the other containers.
+
+The Kubernetes master controls the cluster. An attacker that can compromise the master can control the environment, including the ability to take it offline. And a compromised etcd can mean the ability to modify or destroy the cluster, steal secrets and credentials, or gain enough information about the application it’s running to go recreate it somewhere else.
+
+Appendix 4 - Best practices to harden k8s clusters
+Setup a cluster:
+
+Restrict access to kubectl
+Use RBAC
+Use a Network policy
+Use Namespaces
+Bootstrap TLS
+Follow security hygiene:
+
+Keep Kubernetes updated
+Use a minimal OS
+Use minimal IAM roles
+Use private IPs on all nodes and endpoints
+Monitor access with audit logging
+Verify binaries that are deployed
+Prevent known attacks:
+
+Disable dashboard
+Disable default service account token
+Protect node metadata
+Scan images for known vulnerabilities
+Do not expose any nodes or API endpoints to internet
+Limit the blast radius:
+
+Set a Pod Security Policy
+Leverage various Admission Controllers
+Protect secrets
+Consider sandboxing
+Isolated workloads based on the threat and trust level
+Encrypt data at rest and in transit
+Limit the identity used by pods
+Use a service mesh for authentication & encryption
+Configure Kubernetes Security Context: When you declare a pod/deployment, you can group several security-related parameters, like SELinux profile, Linux capabilities, etc, in a Security context block.
+Configure  Kubernetes Security with Admission Controllers: An admission controller is a piece of code that intercepts requests to the Kubernetes API server prior to persistence of the object, but after the request is authenticated and authorized. Admission controllers pre-process the requests and can provide utility functions (like filling out empty parameters with default values), and can also be used to enforce further security checks. https://sysdig.com/blog/kubernetes-security-psp-network-policy/#admission-controllers
+PodSecurityPolicies: Puts constraints onto newly created Pods, which have to be fulfilled before being allowed to be deployed
+Kubernetes Network Policies: By default, pods send/receive traffic without any sort of filtering. Kubernetes defines security at the pod networking level. A network policy is a specification of how groups of pods are allowed to communicate with each other and other network endpoints, can reduce impact of a breach and limit lateral movement possibilities for an attacker.
+
+Security-Enhanced Linux (SELinux) is a security architecture for Linux® systems that allows administrators to have more control over who can access the system. It was originally developed by the United States National Security Agency (NSA) as a series of patches to the Linux kernel using Linux Security Modules (LSM).  
+
+SELinux was released to the open source community in 2000, and was integrated into the upstream Linux kernel in 2003.
+
+Appendix 5 - Layers of isolation in Kubernetes
+
+Containers do not contain!
+
+One of the primary reasons to adopt containers is for your applications to be decoupled from the underlying environment and support higher resource utilization by “bin packing” multiple workloads onto each server. As such, the architecture of containers means that they’re deployed with multiple containers sharing the same kernel. Unfortunately, while sharing a kernel between workloads enables higher density and efficiency, it also means that a single kernel bug can compromise the entire host. Container escapes are a type of attack that follow a specific pattern: a bad actor attacks one container, escalates their privileges, gains access to the host, then to a second container and its contents.
+
+The shared kernel in containers architecture introduces the threat of “container escape” attacks. Leverage sandboxing in kuberenetes when running untrusted code/images whose provenance can't be verified. Emerging isolation open source projects, like gVisor and Kata Containers, provide defense-in-depth to prevent attacks.
+
+Appendix 6 - Kubernetes ATT&CK-like matrix
+It is important our security monitoring and incident response teams understand what they are responsible for hardening and protecting. It is important that our team understand how our provider communicates in the event of an incident affecting a component they’re responsible for. The MITRE ATT&CK® framework is a knowledge base of known tactics and techniques that are involved in cyber attacks. Those matrices help organizations understand the attack surface in their environments and make sure they have adequate detection and mitigations to the various risks. HSBC does align our GSOC operation with MITRE ATT&CK® framework too.
+
+Kubernetes attack matrix: an ATT&CK-like matrix comprising the major techniques that are relevant to container orchestration security, with focus on Kubernetes. This would help us in mapping various logs to k8s attack surface monitoring. Here's the first take on this by Microsoft. 
+
+https://www.microsoft.com/security/blog/2020/04/02/attack-matrix-kubernetes/
+
+Appendix 7 - Runtime security operating model (proposed)
+
