@@ -1,0 +1,62 @@
+
+Docker Registries for nexus3 Users
+
+The following docker registries can be used by the GCP users to push, promote and pull docker images from Nexus. Please note that these registries are for use only to the users that are using GCP.
+
+Also please note that upload (write) access to Nexus 3 is restricted to using a service account along with Jenkins CI pipeline. Upload access to Nexus 3 repositories for Individual ID's is totally restricted. Please follow the Nexus 3 On boarding instructions for any access required to Nexus 3.
+
+Nexus 3  docker registries for GCP
+
+
+docker-hsbc-internal-dev_n3p	https://nexus3.systems.uk.hsbc:8081/nexus/repository/docker-hsbc-internal-dev_n3p/	The DEV registry is where images will be uploaded to Nexus 3 once the docker image is created and ready for testing in development environment.	Read, Write	18080
+docker-hsbc-internal-uat_n3p	https://nexus3.systems.uk.hsbc:8081/nexus/repository/docker-hsbc-internal-uat_n3p/	The UAT registry is where the image will be promoted to once the image is tested in development environment	Read Only	18081
+docker-hsbc-internal-prd_n3p	https://nexus3.systems.uk.hsbc:8081/nexus/repository/docker-hsbc-internal-prd_n3p/	The Production registry is where the image will be promoted to once the image is QA tested in an UAT environment and ready for production deployment	Read Only	18082
+
+#Pushing an image to Nexus 3  Docker DEV registry
+docker push nexus3.systems.uk.hsbc:18080/<image name>:<tag name>
+ 
+ 
+#Pulling an image to Nexus 3  Docker DEV registry
+docker pull nexus3.systems.uk.hsbc:18080/<image name>:<tag name>
+ 
+ 
+#Pulling an image to Nexus 3  Docker UAT registry
+docker pull nexus3.systems.uk.hsbc:18081/<image name>:<tag name>
+ 
+ 
+#Pulling an image to Nexus 3 UAT Docker PROD registry
+docker pull nexus3.systems.uk.hsbc:18082/<image name>:<tag name>
+
+you can promote an image from one docker image repository to another by retagging your image and pushing:
+
+docker build -t my-test .
+docker tag my-test your-image-repository-dev/test:10
+docker login "your-image-repository-url"
+docker push your-image-repository-dev/test:10
+# ... deploy/test your image in dev
+docker pull your-image-repository-dev/test:10
+docker tag your-image-repository-dev/test:10 \
+           your-image-repository-qa/test:10
+docker push your-image-repository-qa/test:10
+You will then have the same image in a QA docker image repository. This makes sense for images that have passed a base level of unit/functional/user acceptance tests which are distinct from images that have not! The key concept here being the timing at which you retag and push your image. Further, specifying image pull credentials for each docker image repository can help you limit the images that can actually make it to specific environments.
+
+An alternative to the strategy above is that, you might not have separate docker image repositories, and may opt for changing the image name instead of the repository. In this case, you might do the following.
+
+docker build -t my-test .
+docker tag my-test your-image-repository/test:10
+docker login "your-image-repository-url"
+docker push your-image-repository/test:10
+# ... deploy/test your image in dev
+docker pull your-image-repository/test:10
+docker tag your-image-repository/test:10 \
+           your-image-repository/test-qa:10
+docker push your-image-repository/test-qa:10
+
+
+
+
+
+
+
+
+
