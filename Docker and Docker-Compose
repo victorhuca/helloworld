@@ -1,0 +1,57 @@
+Docker and Docker-Compose
+
+$ docker build -f infra/docker/Dockerfile -t release-candidate-ui .
+Sending build context to Docker daemon 17.92MB
+Step 1/17 : FROM nexus3.systems.uk.hsbc:18080/com/hsbc/pb/digital/release/appd-olin-platform-express-server-base:1.13.7
+---> a7371b8026cd
+Step 2/17 : ENV LANG=C.UTF-8
+---> Using cache
+---> f19c1a6394dc
+Step 3/17 : USER root
+---> Using cache
+---> b3229e392717
+Step 4/17 : ARG OLIN_ONBOARDING_API_URL
+---> Using cache
+---> 60f150be8065
+Step 5/17 : ENV OLIN_ONBOARDING_API_URL=${OLIN_ONBOARDING_API_URL}
+---> Using cache
+---> 09134d7ce7b0
+Step 6/17 : ARG NODE_ENV
+---> Using cache
+---> a063048506e8
+Step 7/17 : ENV NODE_ENV=${NODE_ENV}
+---> Using cache
+---> 46f097d359d0
+Step 8/17 : ENV APPDYNAMICS_PROXY_HOST=${APPDYNAMICS_PROXY_HOST}
+---> Using cache
+---> 99902050f6de
+Step 9/17 : ENV APPDYNAMICS_PROXY_PORT=${APPDYNAMICS_PROXY_PORT}
+---> Using cache
+---> 142c5b0ce6ad
+Step 10/17 : ENV APPDYNAMICS_AGENT_REUSE_NODE_NAME_PREFIX=${APPDYNAMICS_AGENT_REUSE_NODE_NAME_PREFIX}
+---> Using cache
+---> 7fde9cb1bac8
+Step 11/17 : RUN mkdir -p /var/www/ui
+---> Using cache
+---> 8800ce7e2b70
+Step 12/17 : WORKDIR /var/www/ui
+---> Using cache
+---> 933b7520aba1
+Step 13/17 : COPY target/build /var/www/ui/build
+---> Using cache
+---> 6ce0f210048f
+Step 14/17 : COPY infra/docker/env.sh /var/www/ui/build/env.sh
+---> Using cache
+---> 2f93049d1ea6
+Step 15/17 : RUN chmod +x /var/www/ui/build/env.sh && chmod +x /var/www/ui/build/appd-eum.sh
+---> Using cache
+---> 14380ad4e9e5
+Step 16/17 : EXPOSE 8080
+---> Using cache
+---> ee0b77233c7f
+Step 17/17 : ENTRYPOINT ["/bin/sh", "-c", "/var/www/ui/build/env.sh && /var/www/ui/build/appd-eum.sh && node /var/www/ui/server/server.js"]
+---> Using cache
+---> 44a2f34cf45b
+Successfully built 44a2f34cf45b
+Successfully tagged release-candidate-ui:latest
+SECURITY WARNING: You are building a Docker image from Windows against a non-Windows Docker host. All files and directories added to build context will have '-rwxr-xr-x' permissions. It is recommended to double check and reset permissions for sensitive files and directories.
