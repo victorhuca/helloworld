@@ -1,0 +1,423 @@
+Introduction
+
+
+Terraform is an open source tool that codifies APIs into declarative configuration files (DCF) that can be shared amongst team members treated as code, edited, reviewed and versioned.
+
+It is developed by Hashicorp. More information about this tool, can be found in this link.
+
+The current document explains the main concepts used in Terraform such as installation and commands.
+
+
+
+"Terraform enables you to safely and predictably create, change, and improve infrastructure."1 HSBC uses Terraform as part of automation and infrastructure generation into AWS as global strategy.
+
+
+
+Requirements
+Take the courses of terraform and packer: Infrastructure as Code
+Request access to Nexus 3: Getting Access - Nexus or Nexus3
+Software are necessary to run Terraform in Windows. Is necessary request some of the next software in AppStore using Service Now system:
+Service Now → Request (Solicitud) → Software → Development Software (Software de desarrollo)
+
+The software required is:
+
+Python 3.6.X or Anaconda 4 (Required from servicenow. Is useful only Python 3.6 or higher with PIP)
+Latest Terraform version available in Nexus 3.
+Visual Studio Code (Required from service now)
+Git (Required from service now)
+For AWS:  AWS CLI (Optional from service now. Recommended to download from nexus3 with python because it's is a more recent version)
+For GCP:  Google Cloud SDK (Optional from service now. Recommended to download from nexus3 because it's is a more recent version).
+More details: Configure gcloud CLI
+
+Terraform installation
+Terraform 0.12
+Download terraform 0.12.28 from Nexus 3 site.
+With gitbash (or manually) create the terraform path
+
+mkdir -p /c/SWDTOOLS/terraform
+On Windows unpack it using git-bash in the directory /c/SWDTOOLS/terraform (C:\SWDTOOLS\terraform)
+
+unzip terraform_0.12.28_windows_amd64.zip
+Terraform 0.13 or higher (Not recommended. See notes below)
+Download terraform from Hashicorp Terraform site (See notes below).
+Creates the directory C:\SWDTOOLS\terraform
+On Windows unpack it using git-bash in the directory /c/SWDTOOLS/terraform (C:\SWDTOOLS\terraform)
+
+Export Proxy variables
+
+
+Terraform unzip wih git-bash
+# Set proxy configuration. Replace $user with your AD user and $password with your AD password.
+export http_proxy=http://$user:$password@proxyisa2.mx.hsbc:8081
+export https_proxy=http://$user:$password@proxyisa2.mx.hsbc:8081
+
+Configure python pip with Nexus3
+Enable SSL connections between pip and nexus3
+You need create pip.ini configuration file for windows or pip.conf for Linux/Mac to enable SSL connection4.
+
+On Linux/Unix the default configuration file is: $HOME/.config/pip/pip.conf which respects the XDG_CONFIG_HOME environment variable.
+
+On Windows the configuration file is %APPDATA%\pip\pip.ini (CMD syntax)
+Create pip.ini (Windows) or pip.conf (Unix / Mac) file with next configuration (replaces ${staff_number} and ${password}):
+
+Windows - pip.ini
+[global]
+index=https://${staff_number}:${password}@nexus3.systems.uk.hsbc:8081/nexus/repository/pypi-group/
+index-url=https://${staff_number}:${password}@nexus3.systems.uk.hsbc:8081/nexus/repository/pypi-group/simple
+trusted-host=nexus3.systems.uk.hsbc
+cert=nexus3.systems.uk.hsbc_cas.pem
+Download CAs certs for nexus3.systems.uk.hsbc and stores into nexus3.systems.uk.hsbc_cas.pem file (attached to this confluence page): nexus3.systems.uk.hsbc_cas.pem
+
+AWS CLI Configuration
+Install python packages for awscli
+Install adfs-assume package:
+ Windows with GitBash
+
+Unix / Mac (and GitBash on Windows): ToolBox installation
+# Update pip with --user option
+python -m pip install --upgrade pip --user
+# Install adfs-assume and awscli packages
+pip install --user adfs-assume
+
+Install certificate certs.pem using Wincertstore script
+Create the following path in your home directory: $HOME/adfs/Toolbox
+
+mkdir -p $HOME/adfs/Toolbox
+Go to your new created folder
+
+cd $HOME/adfs/Toolbox
+Download Wincertstore python script (whl format) from Nexus 3. Remember to replace the $USERNAME and $PASSWORD by your employee ID and password respectively.
+
+curl -v --user $USERNAME:$PASSWORD https://nexus3.systems.uk.hsbc:8081/nexus/repository/pypi-proxy_n3p/packages/wincertstore/0.2/wincertstore-0.2-py2.py3-none-any.whl --output wincertstore-0.2-py2.py3-none-any.whl
+Once Downloaded, unzip the whl file , this will create the wincertstore.py python script needed to generate the certs.pem file
+
+Unix / Mac (and Windows GitBash): aws credentials
+unzip wincertstore-0.2-py2.py3-none-any.whl
+Run the following command:
+
+python wincertstore.py > $HOME/adfs/Toolbox/certs.pem
+
+Create certs and .aws directories and the credentials file
+Windows with GitBash
+
+Unix / Mac (and Windows GitBash): aws credentials
+mkdir -p ~/certs
+mkdir -p ~/.aws
+cd ~/.aws
+Create the credentials file with the next content:
+
+Unix / Mac (and Windows GitBash): credentials file
+[saml]
+echo aws_access_key_id =
+aws_secret_access_key =
+output = json
+region = us-east-1
+aws_session_token =
+
+etting your PC to use Terraform with ADFS
+Windows with GitBash
+On Unix/Mac (or Windows with GitBash) create a shell script (sh) file with your environment variables in order to don't use absolute paths and set proxy configuration:
+
+Unix / Mac (and Windows GitBash): run_adfs.sh
+#!/bin/bash
+ 
+echo -n "Password: "
+read -s password
+echo ""
+#echo "Set Environment Variables"
+#export PATH="/c/SWDTOOLS/terraform:${PATH}"
+echo "Set Proxy environment..."
+export http_proxy=http://$user:$password@proxyisa2.mx.hsbc:8081
+export https_proxy=http://$user:$password@proxyisa2.mx.hsbc:8081
+export no_proxy=adfederationservices.it.global.hsbc,alm-github.systems.uk.hsbc,efx-nexus.systems.uk.hsbc
+echo "Set AWS Profile ..."
+export AWS_PROFILE=saml
+export AD_PASS=$password
+export AWS_CA_BUNDLE=$HOME/adfs/Toolbox/certs.pem
+export REQUESTS_CA_BUNDLE=$HOME/adfs/Toolbox/certs.pem
+echo "Run ADFS Assume..."
+adfs-assume -u $USERNAME -d USERDOMAIN
+With GitBash  and Unix like systems you can add Terraform path to PATH environment variable into $HOME/.bash_profile so you use its relative path. Also export the "$APPDATA/Roaming/Python/Python36/Scripts" path (where adfs-assume will be installed)
+
+$HOME/.bash_profile suggested format
+
+export PATH=$PATH:/c/SWDTOOLS/terraform:$HOME/AppData/Roaming/Python/Python36/Scripts
+export http_proxy=http://USER:PASS@proxyisa2.mx.hsbc:8081
+export https_proxy=http://USER:PASS@proxyisa2.mx.hsbc:8081
+export no_proxy=adfederationservices.it.global.hsbc,alm-github.systems.uk.hsbc
+export AWS_DEFAULT_REGION=“us-east-1"
+export AWS_DEFAULT_PROFILE="saml"
+export REQUESTS_CA_BUNDLE=$HOME/adfs/Toolbox/certs.pem
+export AWS_CA_BUNDLE=$HOME/adfs/Toolbox/certs.pem
+
+
+Run adfs script to connect the cloud
+On Windows (CMD) run the adfs.bat file when a new command terminal is open. As example:
+
+Windows: AWSCLI test
+run_adfs.bat
+
+
+On Unix/Mac (Or Windows with GitBash) run adfs.sh script when a new command terminal is open. 
+
+$ . ./run_adfs.sh
+User: 43779514
+Password:
+Set Proxy environment...
+Set AWS Profile ...
+Run ADFS_Assume.py ...
+Log Level:WARNING. Use the --log parameter to adjust log levels
+ 
+!!!!!!!!!! WARNING !!!!!!!!!!....
+ 
+…
+ 
+Please choose the role you would like to assume:
+  0) arn:aws:iam::123456789012:role/ADFS-InfraDevOps         (gbmsirixrwmxdev)
+  1) arn:aws:iam::123456789012:role/ADFS-InfraDevOps         (itiddatadomaindev)
+  2) arn:aws:iam::123456789012:role/ADFS-AppDevOps           (itiddatadomaindev)
+  3) arn:aws:iam::123456789012:role/ADFS-InfraDevOps         (gbmsirixrwmxpreprod)
+  
+Selection:
+
+Select the account to connect. The AWS Successful Session message should be displayed as below
+
+Tools configuration – Testing configuration
+
+
+A) Successful terraform Command:
+
+
+
+$ terraform
+ 
+Usage: terraform [-version] [-help] <command> [args]
+The available commands for execution are listed below.
+The most common, useful commands are shown first, followed by
+less common or more advanced commands. If you're just getting
+started with Terraform, stick with the common commands. For the
+other commands, please read the help and docs before usage.
+Common commands:
+ 
+    apply              Builds or changes infrastructure
+    console            Interactive console for Terraform interpolations
+    destroy            Destroy Terraform-managed infrastructure
+    env                Workspace management
+
+
+B) Successful adfs connection to AWS account by listing buckets:
+
+
+
+Unix / Mac (and Windows GitBash): AWSCLI test
+aws s3 ls
+OR
+#Use --no-verify-ssl to ignore SSL handshake verification. Run an aws command for testing (ls to s3 buckets as example):
+aws s3 ls --no-verify-ssl
+
+
+Troubleshooting
+
+
+
+If you have problems during the installation of Terraform or dependencies, please check the most common errors section.
+
+Visual Studio Code configuration
+Visual studio code is a Lightweight IDE and is the favorite to develop Infrastructure as Code with terraform. To make the development more easy is necessary to install some extensions. The recommended extensions are:
+
+vscode-terraform from Hashicorp	
+Download it from the princial site: https://github.com/hashicorp/vscode-terraform/releases/download/v2.2.3/terraform-2.2.3.vsix
+
+Python	
+Install from VSIX in your computer:
+
+C:\Program Files\Microsoft VS Code\extensions\ms-python.python-2020.6.91350.vsix
+
+MagicPython	Download/Install from VSCode extensions.
+JSON	Download/Install from VSCode extensions.
+Markdown All in One	Download/Install from VSCode extensions.
+markdownlint	Download/Install from VSCode extensions.
+Jinja	Download/Install from VSCode extensions.
+Go	Download/Install from VSCode extensions.
+Bash Beautify	Download/Install from VSCode extensions.
+Bracket Pair Colorizer 2	Download/Install from VSCode extensions.
+
+Terraform Commands
+Next table shows the common and useful commands of terraform:
+
+terraform version
+
+terraform --version
+
+Prints the Terraform version.	Validate your installation with terraform version command.
+terraform --help	Prints the common and useful commands of terraform.	
+terraform init	Initialize a Terraform working directory	
+terraform validate	Validates the Terraform files.	Useful to check syntax.
+terraform plan	Generate and show an execution plan	
+terraform apply	Builds or changes infrastructure	
+terraform destroy	Destroy Terraform-managed infrastructure	
+terraform import	Import existing infrastructure into Terraform	Useful to import created resources to your state.
+terraform get	Download and install modules for the configuration	
+terraform refresh	Update local state file against real resources	
+terraform show	Inspect Terraform state or plan	
+terraform workspace	Workspace management	
+terraform 0.12upgrade	Rewrites pre-0.12 module source code for v0.12	
+terraform 0.13upgrade	Rewrites pre-0.13 module source code for v0.13	Only Terraform 0.13.X
+
+Variables
+
+
+Variables in Terraform are really useful. They can be defined in a separate variable file, where we have track of them.
+
+
+
+variables.tf
+
+
+Terraform file beanstalk.tf
+variable "app_name" {
+    description = "Application name"
+    type        = string
+    default     = "app-test"
+}
+ 
+variable "instance_type" {
+    description = "Instance type"
+    type        = string
+    default     = "t2.micro"
+}
+ 
+variable "env" {
+    description = "Environment"
+    type        = string
+    default     = "dev"
+}
+Then, in our template, we can access these variables:
+
+beanstalk.tf
+
+
+Terraform file beanstalk.tf
+resource "aws_elastic_beanstalk_application" "app" {
+    name        = var.app_name
+    description = "This is a test application"
+}
+
+Templates
+
+
+
+Template is an additional module that can be added to the Terraform project. This module renders a template from a file. It is useful whenever we need to inject variables to non-terraform files, such as JSON files or Bash Scripts.
+
+
+
+In this case, we define which files have to be rendered before using them.
+
+
+
+Consider the following example: We have a JSON document that defines a policy, which doesn't support variables. This template has to receive some of the values defined in these variables (such as the Application Name). Thus, we need to specify some parameters to the JSON file.
+
+ 
+
+In this case, we will have to create a template, in which we specify which files have to be rendered:
+
+
+
+templates.tf
+
+
+Terraform file templates.tf
+data "template_file" "instance_role_policy" {
+    template = file("policies/instance-role-policy.json")
+  
+    vars {
+        region    = data.aws_region.current.name
+        accountId = data.aws_caller_identity.current.account_id
+        appName   = var.app_name
+    }
+}
+Inside the template, now we can use these variables:
+
+instance-role-policy.json
+
+
+Terraform file instance-role-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1516659047520",
+      "Action": [
+        "dynamodb:Query",
+        "dynamodb:GetItem"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:dynamodb:${region}:${accountId}:table/${appName}"
+    }
+  ]
+}
+Finally, whenever we need to use this file, instead of using the original one, we have to tell Terraform to use the rendered version:
+
+beanstalk.tf
+
+
+
+Terraform file beanstalk.tf
+# Policies for Beanstalk Instances
+resource "aws_iam_role_policy" "instance_role_policy" {
+    name   = "${var.app_name}-service-policy"
+    policy = data.template_file.instance_role_policy.rendered
+    role   = aws_iam_role.app-ec2-role.id
+}
+
+
+If statement (or so)
+
+
+Terraform hasn't an 'if' statement out of the box. However, we can trick it to have similar logic with a combination of parameters.
+
+
+
+The first one is to use the count parameter. It specifies the number of resources we want to provision. And it can be assigned a zero value.
+
+ 
+
+Second, we can define a variable and set it to true or false. In case variable is true, it will translate into a 1 to count. In case it is false, it will translate to zero.
+
+variables.tf
+
+
+Terraform file variables.tf
+variable "create_application" {
+  description = "If set to true, create the Beanstalk Application"
+  type        = bool
+  default     = false
+}
+
+
+With this trick, we can specify now in our variable files if we want to set the variable as true or false:
+
+
+
+stage/dev.tfvars
+
+
+
+Terraform file dev.tfvars
+# Create Beanstalk Application
+create_application = true
+
+Terraform Modules
+Use terraform modules development for Global coud team or the modules provided by the Cloud Enablement Team (CET) of Lam from the GitHub repositories.
+
+Both repositories contain terraform modules created to make a easy way to creates your infrastructure as code for AWS. They implement security patterns and compliance rules for cloud use.
+
+AWS Shared GitHub repository
+Cloud Enablement Team Git Hub repository
+Terraform best practices
+References
+Hashi Corp Terraform (2019), "Write, Plan, and Create Infrastructure as Code", <https://www.terraform.io [August 13, 2019]
+GCS AWS Platform Team Space (2018) <https://digital-confluence.systems.uk.hsbc/confluence/display/AWSPT/GCS+AWS+Platform+Team+Space+Home?src=sidebar> [November 12, 2019]
+ADFS Assume Script from GCS AWS Platform team Space (2020): <https://digital-confluence.systems.uk.hsbc/confluence/display/DCSC/ADFS+Assume> [October 12, 2020]
+pip 20.0.2 documentation - User Guide: <https://pip.pypa.io/en/stable/user_guide/> [April 20, 2020]
+
