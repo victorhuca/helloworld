@@ -1,0 +1,145 @@
+Prerequisites
+AWS CLI Tool (T:\Cloud\AWS Tools\AWSCL64.msi)
+
+IntelliJ Idea
+
+ADFS Assume Script (T:\Cloud\AWS Tools\ADFS_Assume.py)
+
+Installation
+1. Copy Terraform program and plugins from below path to local disk:
+
+Get started with EC2 instance creation and deletion
+Notes: Please make sure your AWS credential is valid and not expired.
+
+Environment: HSBC Risk Sandbox 5
+
+2. Install IntelliJ Plugin for Terraform from T:\Cloud\AWS Tools
+3. Specify the path of terraform.exe in IntelliJ:
+Get started with EC2 instance creation and deletion
+Notes: Please make sure your AWS credential is valid and not expired.
+
+Environment: HSBC Risk Sandbox 5
+
+Create a folder named helloworld, and create an example.tf file inside the folder, put content like below, which is going to create an EC2 instance with specified settings:
+provider "aws" {
+  region  = "eu-west-1"
+  profile = "default"
+}
+resource "aws_instance" "example" {
+  ami           = "ami-d834aba1"
+  instance_type = "t2.micro"
+  key_name = "sb5-kk-key"
+  vpc_security_group_ids = ["sg-14355b6e"]
+  subnet_id              = "subnet-3f227576"
+  iam_instance_profile = "Role_EC2_Instance_Access"
+  tags {
+    Name = "TradedRisk-TSE_Terraform_POC-Kitkit-TSE-1720"
+  }
+}
+
+
+Terraform program: T:\Cloud\AWS Tools\terraform0.10.8
+
+Terraform plugin: T:\Cloud\AWS Tools\terraform_Plugins
+
+2. terraform init - Initialization for working folder
+
+Run Configuration:
+
+Program argements: init -plugin-dir="<terraform plugin forlder>"
+
+Working directory: <working folder where .tf file locate>
+
+Environment variables: http_proxy=http://<AD account>:<AD Password>@uk-proxy-01.systems.uk.hsbc:80;https_proxy=http://<AD account>:<AD Password>@uk-proxy-01.systems.uk.hsbc:80
+
+3. terraform plan - Preview the changes going to apply in AWS
+
+Run Configuration:
+
+Program argements: plan
+
+Working directory: <working folder where .tf file locate>
+
+Environment variables: http_proxy=http://<AD account>:<AD Password>@uk-proxy-01.systems.uk.hsbc:80;https_proxy=http://<AD account>:<AD Password>@uk-proxy-01.systems.uk.hsbc:80
+
+4. terraform apply - Apply the change into AWS
+
+Run Configuration:
+
+Program argements: apply
+
+Working directory: <working folder where .tf file locate>
+
+Environment variables: http_proxy=http://<AD account>:<AD Password>@uk-proxy-01.systems.uk.hsbc:80;https_proxy=http://<AD account>:<AD Password>@uk-proxy-01.systems.uk.hsbc:80
+
+Go to AWS Console -> EC2 -> Instances, you can see a new instance with the settings defined in .tf is created and running:
+
+5. terraform destory - Destroy the resources defined in .tf file in  AWS
+
+Program argements: destory
+
+Working directory: <working folder where .tf file locate>
+
+Environment variables: http_proxy=http://<AD account>:<AD Password>@uk-proxy-01.systems.uk.hsbc:80;https_proxy=http://<AD account>:<AD Password>@uk-proxy-01.systems.uk.hsbc:80
+
+
+Go to AWS Console -> EC2 -> Instances, you can see that instance created in step 4 is terminated.
+
+Enhance the example with input variables and output variables
+1. Change the setting values to variable names to be input in example.tf:
+
+provider "aws" {
+  region  = "${var.region}"
+  profile = "default"
+}
+resource "aws_instance" "example" {
+  ami = "${lookup(var.amis, var.region)}"
+  instance_type = "${var.instance_type}"
+  key_name = "${var.key_name}"
+  vpc_security_group_ids = ["${var.sg_group}"]
+  subnet_id              = "${var.subnet}"
+  iam_instance_profile = "${var.instance_role}"
+  tags {
+    Name = "${var.instance_name}"
+  }
+}
+
+2. Create variables.tf to define the input variable:
+
+variable "region" {
+  default = "eu-west-1"
+}
+variable "amis" {
+  type = "map"
+  default = {
+    "us-east-1" = "ami-b374d5a5"
+    "us-west-2" = "ami-4b32be2b"
+    "eu-west-1" = "ami-d834aba1"
+  }
+}
+variable "instance_type" {
+  default = "t2.micro"
+}
+variable "key_name" {}
+variable "sg_group" {}
+variable "subnet" {}
+variable "instance_role" {}
+variable "instance_name" {}
+3. Create sandbox5.tfvar to store the variable values for specified environment:
+
+region = "eu-west-1"
+key_name = "sb5-kk-key"
+sg_group = "sg-14355b6e"
+subnet = "subnet-3f227576"
+instance_role = "Role_EC2_Instance_Access"
+instance_name = "TradedRisk-TSE_Terraform_POC-Kitkit-TSE-1720"
+4. Create outputs.tf to specify which value to be output after apply execution
+
+output "ip" {
+  value = "${aws_instance.example.private_ip}"
+}
+5. Append  -var-file="sandbox5.tfvars" into the Program arguments of terraform plan, terraform apply and terraform destroy:
+
+6. Execute terraform plan, terraform apply :
+
+It outputs the private IP of the created instance.
